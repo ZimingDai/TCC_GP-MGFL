@@ -1,0 +1,2 @@
+model_checkpoint_path: "big_fine15"
+all_model_checkpoint_paths: "big_fine15"
