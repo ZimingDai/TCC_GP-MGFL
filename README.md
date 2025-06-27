@@ -1,7 +1,3 @@
-# README
-
-
-
 # Multi-Granularity Federated Learning by Graph-Partitioning
 
 [![Paper](https://img.shields.io/badge/Paper-IEEE_TCC-blue.svg?style=for-the-badge&logo=ieee)](https://ieeexplore.ieee.org/abstract/document/10748407)
