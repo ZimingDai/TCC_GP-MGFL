@@ -2,100 +2,146 @@
 
 
 
-### 文件结构
+# Multi-Granularity Federated Learning by Graph-Partitioning
 
-#### '/data'
+[![Paper](https://img.shields.io/badge/Paper-IEEE_TCC-blue.svg?style=for-the-badge&logo=ieee)](https://ieeexplore.ieee.org/abstract/document/10748407)
 
-这个文件夹用于存放项目所需要的数据文件：
+This repository contains the official implementation of the paper:
 
-1. 分组文件（`node_partition_mnist`等）
-2. 类别对应文件（`100-20`为CIFAR100对应文件，`10-6`为MNIST对应文件）
-3. 中间生成的图文件（`graph.gpickle`）
+**Multi-Granularity Federated Learning by Graph-Partitioning**
 
-#### '/log'
+> In edge computing, energy-limited and heterogeneous edge clients face challenges in communication efficiency, model performance, and security. Traditional blockchain-based federated learning (BFL) methods often fall short in addressing these issues simultaneously. We propose **GP-MGFL**, a graph-partitioning multi-granularity federated learning framework on a consortium blockchain. By using balanced graph partitioning with observer and consensus nodes, GP-MGFL reduces communication costs while maintaining effective intra-group guidance. A cross-granularity guidance mechanism enables fine-grained models to guide coarse-grained ones, enhancing overall performance. A dynamic credit-based aggregation scheme further improves adaptability and robustness. Experimental results show that GP-MGFL outperforms standard BFL by up to 5.6%, and achieves up to 11.1% improvement in malicious scenarios.
 
-该文件夹记录所有客户端的每个epoch的准确度，记录为`scale_granularityX.txt`，以及中间过程生成的指导能力矩阵`Gv.csv`
+This codebase is intended for research and reproducibility purposes only.
 
-`Gv20(30).csv`表示CIFAR100数据集中20、30个客户端的指导矩阵；`Gv_mnist_30.csv`为MNIST数据集中30个客户端的指导矩阵
+------
 
-#### '/src'
+## 💻 Installation
 
-包含项目的所有源代码文件。
-
-* `data_prepare_func.py`：存放了对数据集进行处理的函数
-* `model.py`：定义了大规模模型与小规模模型的结构
-* `model_function.py`：定义了模型进行操作的函数，训练、蒸馏等
-* `prepare_csv_func.py`：定义了生成粒度对应关系的函数
-* `graph_partition.py`：进行图分割部分等分组方式的代码，对应文章Fig.5 的A - B
-* `cal_acc.py`：进行模型训练与指导的代码，对应Fig.5的C - E
-* `draw.py`：简单定义了模型结果画图的函数
-
-#### '/test'
-
-纯粹测试，无意义
-
-### 运行方式
-
-#### 前提条件
-
-```sh
-pip3 install -r requirements.txt
-cd /src
+```bash
+pip install -r requirements.txt
+cd src/
 ```
 
-#### 分组
+Python version: **3.8+** is recommended.
 
-使用以下命令行参数来运行程序：
+------
 
-```sh
-python graph_patition.py --nodes <节点数> --device <设备类型> --epoch <训练轮数> --k <组数> --dataset <数据集名> --coarse_class <粗分类别数> --fine_class <细分类别数> --imbalance <不平衡参数> --seed <随机种子> --method <聚类方法>
+## 🚀 How to Run
+
+### Step 1: Graph Partitioning
+
+Run client grouping and graph partitioning:
+
+```bash
+python graph_partition.py [arguments]
 ```
 
-**参数说明：**
+**Arguments:**
 
-- `--nodes`: 边缘设备的总数目，一半粗一半细。默认为 30。
-- `--device`: 选择训练设备，例如：0，默认为 cpu。
-- `--epoch`: 计算数据分区所需的训练轮数。默认为 15。
-- `--k`: 组数。必须指定。
-- `--dataset`: 使用的数据集名称，默认为 "cifar100"。
-- `--coarse_class`: 粗粒度数据集中的分类数量。必须指定。
-- `--fine_class`: 细粒度数据集中的分类数量。必须指定。
-- `--imbalance`: kahypar 算法的不平衡参数。默认为 0.03。
-- `--seed`: 随机种子，默认为 0。
-- `--method`: 聚类方法选择，例如：MGGFL, Greedy, Random, Spectral。默认为 "MGGFL"。
+- `--nodes`: Number of total edge clients (half coarse, half fine). Default is `30`.
+- `--device`: Device index or `cpu`. Default is `cpu`.
+- `--epoch`: Number of training epochs used for partition computation. Default is `15`.
+- `--k`: Number of groups. **Required**.
+- `--dataset`: Dataset name (`mnist` or `cifar100`). Default is `cifar100`.
+- `--coarse_class`: Number of coarse classes. **Required**.
+- `--fine_class`: Number of fine classes. **Required**.
+- `--imbalance`: Imbalance factor for the Kahypar partitioner. Default is `0.03`.
+- `--seed`: Random seed. Default is `0`.
+- `--method`: Grouping method: `MGGFL`, `Greedy`, `Random`, `Spectral`. Default is `MGGFL`.
 
-**示例：**
+**Example:**
 
-```sh
-python graph_partition.py --nodes 30 --device 0 --epoch 5 --k 3 --dataset mnist --coarse_class 6 --fine_class 10 --method Greedy
+```bash
+python graph_partition.py --nodes 30 --device 0 --epoch 5 --k 3 \
+--dataset mnist --coarse_class 6 --fine_class 10 --method Greedy
 ```
 
+------
 
+### Step 2: Training with Guidance
 
-#### 训练
+Run the federated training with cross-granularity guidance:
 
-要运行程序，请使用以下命令格式，并根据需要替换各参数的值：
-
-```sh
-python cal_acc.py --nodes <节点数> --malice <恶意节点数> --device <设备类型> --epoch <训练轮数> --k <组数> --dataset <数据集名称> --coarse_class <粗分类别数> --fine_class <细分类别数> --seed <随机种子> --method <聚类方法>
+```bash
+python cal_acc.py [arguments]
 ```
 
-**参数说明：**
+**Arguments:**
 
-- `--nodes`: 边缘设备的总数目。默认为 30。
-- `--malice`: 网络中恶意节点的数量。默认为 0。
-- `--device`: 训练设备的选择，例如：0，默认为 cpu。
-- `--epoch`: 执行的训练轮数。
-- `--k`: 分组数量。默认为 2。
-- `--dataset`: 使用的数据集名称，默认为 "cifar100"。
-- `--coarse_class`: 粗粒度数据集中的分类数量。必须指定。
-- `--fine_class`: 细粒度数据集中的分类数量。必须指定。
-- `--seed`: 随机种子。默认为 0。
-- `--method`: 选择的聚类方法，例如：MGGFL, Greedy, Random, Spectral。默认为 "MGGFL"。
+- `--nodes`: Number of total edge clients. Default is `30`.
+- `--malice`: Number of malicious clients. Default is `0`.
+- `--device`: Device index or `cpu`. Default is `cpu`.
+- `--epoch`: Number of training epochs.
+- `--k`: Number of groups. Default is `2`.
+- `--dataset`: Dataset name (`mnist` or `cifar100`). Default is `cifar100`.
+- `--coarse_class`: Number of coarse classes. **Required**.
+- `--fine_class`: Number of fine classes. **Required**.
+- `--seed`: Random seed. Default is `0`.
+- `--method`: Grouping method: `MGGFL`, `Greedy`, `Random`, `Spectral`. Default is `MGGFL`.
 
-**示例：**
+**Example:**
 
-```sh
-python cal_acc.py --nodes 30 --device 1 --epoch 10 --k 3 --dataset mnist --coarse_class 6 --fine_class 10 --method Greedy
+```bash
+python cal_acc.py --nodes 30 --device 1 --epoch 10 --k 3 \
+--dataset mnist --coarse_class 6 --fine_class 10 --method Greedy
 ```
 
+---
+
+
+
+## 📁 Data and Logs Description
+
+#### `/data`
+
+This folder stores all necessary data and intermediate files used in the project:
+
+- **Client partition files**: e.g., `node_partition_mnist`
+- **Class mapping files**:
+  - `100-20` for CIFAR-100
+  - `10-6` for MNIST
+- **Intermediate graph file**:
+  - `graph.gpickle` for partitioning logic
+
+#### `/log`
+
+This folder records training outputs and intermediate matrices:
+
+- `scale_granularityX.txt`:
+  - Accuracy of each client per epoch
+- `Gv*.csv`:
+  - Client guidance matrices
+  - `Gv20.csv`, `Gv30.csv`: for CIFAR-100 (20/30 clients)
+  - `Gv_mnist_30.csv`: for MNIST with 30 clients
+
+## 📦 Dataset
+
+Supported datasets:
+
+- **MNIST**
+- **CIFAR-100**
+
+Datasets are automatically downloaded and processed during execution.
+
+------
+
+## 📜 License
+
+This code is released **for research purposes only**.
+
+------
+
+## 📖 Citation
+
+If you find this work useful in your research, please cite the following paper:
+
+```bibtex
+@article{dai2024multi,
+  title={Multi-Granularity Federated Learning by Graph-Partitioning},
+  author={Dai, Ziming and Zhao, Yunfeng and Qiu, Chao and Wang, Xiaofei and Yao, Haipeng and Niyato, Dusit},
+  journal={IEEE Transactions on Cloud Computing},
+  year={2024},
+  publisher={IEEE}
+}
+```
